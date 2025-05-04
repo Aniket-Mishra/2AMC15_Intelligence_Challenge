@@ -322,6 +322,7 @@ class Environment:
                        max_steps: int,
                        sigma: float = 0.,
                        agent_start_pos: tuple[int, int] = None,
+                       reward_fn: callable = None,
                        random_seed: int | float | str | bytes | bytearray = 0,
                        show_images: bool = False):
         """Evaluates a single trained agent's performance.
@@ -341,6 +342,7 @@ class Environment:
             max_steps: Max number of steps to take.
             sigma: same as abve.
             agent_start_pos: same as above.
+            reward_fn: Custom reward function to use (defaults to Environment._default_reward_function).
             random_seed: same as above.
             show_images: Whether to show the images at the end of the
                 evaluation. If False, only saves the images.
@@ -350,6 +352,7 @@ class Environment:
                           no_gui=True,
                           sigma=sigma,
                           agent_start_pos=agent_start_pos,
+                          reward_fn=reward_fn,
                           target_fps=-1,
                           random_seed=random_seed)
         
@@ -375,3 +378,61 @@ class Environment:
         file_name = datetime.now().strftime("%Y-%m-%d__%H-%M-%S")
 
         save_results(file_name, env.world_stats, path_image, show_images)
+
+
+    ### Related to Dynamic Programming (DP) ###
+    def get_state_space(self) -> list[tuple[int,int]]:
+        """
+        All possible agent positions: any cell that is *not* a wall or obstacle.
+        (We assume the agent can never occupy 1=boundary or 2=obstacle.)
+        """
+        # grid is a 2D numpy array in self.grid
+        valid = list(zip(*np.where((self.grid != 1) & (self.grid != 2))))
+        return valid
+
+    def get_action_space(self) -> list[int]:
+        """
+        Return all defined action indices.  By default
+            0: down, 1: up, 2: left, 3: right
+        (If you add diagonals, just extend action_to_direction accordingly.)
+        """
+        return list(self.action_to_direction.keys())
+
+    def _simulate_move(self, state: tuple[int,int], action: int) -> tuple[int,int]:
+        """
+        Like step() but without stats/gui/rewards: 
+        returns the next state only (bouncing off walls/obstacles).
+        """
+        dx, dy = self.action_to_direction[action]
+        x, y     = state
+        nx, ny   = x + dx, y + dy
+        # if out-of-bounds or hits a wall/obstacle, stay put:
+        if not (0 <= nx < self.grid.shape[0] and
+                0 <= ny < self.grid.shape[1]) \
+           or self.grid[nx,ny] in (1,2):
+            return state
+        # otherwise move into empty/target/charger
+        return (nx, ny)
+
+    def get_transition_model(self,
+                             state: tuple[int,int],
+                             action: int
+                           ) -> list[tuple[tuple[int,int], float, float]]:
+        """
+        For DP/VI/PI: return a list of (next_state, prob, reward) tuples
+        that account for sigma‐noise and your reward_fn.
+        """
+        model = []
+        actions = self.get_action_space()
+        nA = len(actions)
+        for actual in actions:
+            # if intended, prob = 1−σ; otherwise σ spread uniformly
+            p = (1 - self.sigma) if actual == action else (self.sigma / nA)
+            next_s = self._simulate_move(state, actual)
+            r      = self.reward_fn(self.grid, next_s)
+            model.append((next_s, p, r))
+        # make sure probs sum to 1 (up to floating‐point)
+        assert abs(sum(p for _,p,_ in model) - 1.0) < 1e-6
+
+        return model
+
