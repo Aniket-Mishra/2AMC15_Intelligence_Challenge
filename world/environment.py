@@ -382,57 +382,52 @@ class Environment:
 
     ### Related to Dynamic Programming (DP) ###
     def get_state_space(self) -> list[tuple[int,int]]:
-        """
-        All possible agent positions: any cell that is *not* a wall or obstacle.
-        (We assume the agent can never occupy 1=boundary or 2=obstacle.)
-        """
-        # grid is a 2D numpy array in self.grid
+        """All non‐boundary, non‐obstacle cells as possible states."""
+        # grid values: 0=empty,1=boundary,2=obstacle,3=target,4=charger
+        # exclude walls (1) and obstacles (2)
         valid = list(zip(*np.where((self.grid != 1) & (self.grid != 2))))
         return valid
 
     def get_action_space(self) -> list[int]:
-        """
-        Return all defined action indices.  By default
-            0: down, 1: up, 2: left, 3: right
-        (If you add diagonals, just extend action_to_direction accordingly.)
-        """
-        return list(self.action_to_direction.keys())
-
-    def _simulate_move(self, state: tuple[int,int], action: int) -> tuple[int,int]:
-        """
-        Like step() but without stats/gui/rewards: 
-        returns the next state only (bouncing off walls/obstacles).
-        """
-        dx, dy = self.action_to_direction[action]
-        x, y     = state
-        nx, ny   = x + dx, y + dy
-        # if out-of-bounds or hits a wall/obstacle, stay put:
-        if not (0 <= nx < self.grid.shape[0] and
-                0 <= ny < self.grid.shape[1]) \
-           or self.grid[nx,ny] in (1,2):
-            return state
-        # otherwise move into empty/target/charger
-        return (nx, ny)
+        """Return the list of action indices (0..3)."""
+        # We know the environment only supports 4 moves by default:
+        return [0, 1, 2, 3]
 
     def get_transition_model(self,
                              state: tuple[int,int],
                              action: int
-                           ) -> list[tuple[tuple[int,int], float, float]]:
+                            ) -> list[tuple[tuple[int,int], float, float]]:
         """
-        For DP/VI/PI: return a list of (next_state, prob, reward) tuples
-        that account for sigma‐noise and your reward_fn.
+        For DP: returns a list of (next_state, probability, reward) tuples,
+        taking into account sigma noise and the reward_fn.
+        Reward is computed on the *intended* cell (pre‐bounce).
         """
         model = []
-        actions = self.get_action_space()
-        nA = len(actions)
-        for actual in actions:
-            # if intended, prob = 1−σ; otherwise σ spread uniformly
-            p = (1 - self.sigma) if actual == action else (self.sigma / nA)
-            next_s = self._simulate_move(state, actual)
-            r      = self.reward_fn(self.grid, next_s)
+        A = self.get_action_space()
+        for actual in A:
+            # 1) probability of executing `actual` when intending `action`
+            if actual == action:
+                p = 1.0 - self.sigma
+            else:
+                p = self.sigma / (len(A) - 1)
+
+            # 2) compute the intended move
+            dx, dy = action_to_direction(actual)   # <-- call the function!
+            intended = (state[0] + dx, state[1] + dy)
+
+            # 3) reward on the intended cell (so hitting obstacle yields the obstacle penalty)
+            r = self.reward_fn(self.grid, intended)
+
+            # 4) “clip” intended to real next_state (bounce back on wall/obstacle/boundary)
+            if (not (0 <= intended[0] < self.grid.shape[0] and
+                     0 <= intended[1] < self.grid.shape[1])) \
+               or self.grid[intended] in {1, 2}:
+                next_s = state
+            else:
+                next_s = intended
+
             model.append((next_s, p, r))
-        # make sure probs sum to 1 (up to floating‐point)
-        assert abs(sum(p for _,p,_ in model) - 1.0) < 1e-6
 
         return model
 
+    

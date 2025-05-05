@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from tqdm import trange
 from world.reward_functions import custom_reward_function
+from world.helpers import action_to_direction
 
 try:
     from world import Environment
@@ -50,6 +51,15 @@ def main(grid_paths: list[Path], no_gui: bool, iters: int, fps: int,
         # Set up the environment
         env = Environment(grid, no_gui, sigma=sigma, agent_start_pos=agent_start_pos, reward_fn=custom_reward_function, target_fps=fps, 
                           random_seed=random_seed)
+        
+        state = env.reset()
+        # The model
+        print(f"\nTransition model at start‐state {state!r}:")
+        for a in env.get_action_space():
+            print(f" Action {a!r} ({action_to_direction(a)}):")
+            for (s_prime, prob, rew) in env.get_transition_model(state, a):
+                print(f"   → next={s_prime!r},  p={prob:.2f},  r={rew}")
+
         
         # Initialize agent
         agent = RandomAgent()
