@@ -9,6 +9,7 @@ from tqdm import trange
 try:
     from world import Environment
     from agents.random_agent import RandomAgent
+    from agents.Q_learning_agent import QLearningAgent
 except ModuleNotFoundError:
     from os import path
     from os import pardir
@@ -20,6 +21,7 @@ except ModuleNotFoundError:
         sys.path.extend(root_path)
     from world import Environment
     from agents.random_agent import RandomAgent
+    from agents.Q_learning_agent import QLearningAgent
 
 def parse_args():
     p = ArgumentParser(description="DIC Reinforcement Learning Trainer.")
@@ -33,46 +35,51 @@ def parse_args():
     p.add_argument("--fps", type=int, default=30,
                    help="Frames per second to render at. Only used if "
                         "no_gui is not set.")
-    p.add_argument("--iter", type=int, default=1000,
-                   help="Number of iterations to go through.")
+    p.add_argument("--episodes", type=int, default=1000,
+                   help="Number of episodes to go through.")
+    p.add_argument("--iter", type=int, default=200,
+                   help="Max number of iterations to go through per episode.")
     p.add_argument("--random_seed", type=int, default=0,
                    help="Random seed value for the environment.")
     return p.parse_args()
 
 
-def main(grid_paths: list[Path], no_gui: bool, iters: int, fps: int,
-         sigma: float, random_seed: int):
+def main(grid_paths: list[Path], no_gui: bool, episodes: int, iters: int, fps: int,
+         sigma: float, random_seed: int, agent_start_pos: tuple[int,int]):
     """Main loop of the program."""
 
     for grid in grid_paths:
         
         # Set up the environment
         env = Environment(grid, no_gui,sigma=sigma, target_fps=fps, 
-                          random_seed=random_seed)
+                          agent_start_pos=agent_start_pos, random_seed=random_seed)
         
         # Initialize agent
-        agent = RandomAgent()
+        #agent = RandomAgent()
+        agent = QLearningAgent(alpha0 = 0.2, epsilon0 = 0.2, gamma = 0.9)
         
-        # Always reset the environment to initial state
-        state = env.reset()
-        for _ in trange(iters):
-            
-            # Agent takes an action based on the latest observation and info.
-            action = agent.take_action(state)
+        # Always reset the environment to initial state at the start of each episode
+        for _ in trange(episodes):
+            state = env.reset()
+            for _ in trange(iters):
+                
+                # Agent takes an action based on the latest observation and info.
+                action = agent.take_action(state)
 
-            # The action is performed in the environment
-            state, reward, terminated, info = env.step(action)
-            
-            # If the final state is reached, stop.
-            if terminated:
-                break
+                # The action is performed in the environment
+                state, reward, terminated, info = env.step(action)
+                
+                # If the final state is reached, stop.
+                if terminated:
+                    break
 
-            agent.update(state, reward, info["actual_action"])
+                agent.update(state, reward, info["actual_action"])
 
         # Evaluate the agent
-        Environment.evaluate_agent(grid, agent, iters, sigma, random_seed=random_seed)
+        Environment.evaluate_agent(grid, agent, iters, sigma, random_seed=random_seed, agent_start_pos=agent_start_pos)
 
 
 if __name__ == '__main__':
     args = parse_args()
-    main(args.GRID, args.no_gui, args.iter, args.fps, args.sigma, args.random_seed)
+    agent_start_pos = [1, 13] # Hardcoded for now
+    main(args.GRID, args.no_gui, args.episodes, args.iter, args.fps, args.sigma, args.random_seed, agent_start_pos)
