@@ -404,12 +404,14 @@ class Environment:
         """
         model = []
         A = self.get_action_space()
+        nA = len(A)
+
+        # matched to `step()`: Bernoulli(sigma) then uniform over all actions
+        p_intended = (1.0 - self.sigma) + self.sigma / nA
+        p_other    = self.sigma / nA
         for actual in A:
             # 1) probability of executing `actual` when intending `action`
-            if actual == action:
-                p = 1.0 - self.sigma
-            else:
-                p = self.sigma / (len(A) - 1)
+            p = p_intended if actual == action else p_other
 
             # 2) compute the intended move
             dx, dy = action_to_direction(actual)   # <-- call the function!
@@ -419,15 +421,17 @@ class Environment:
             r = self.reward_fn(self.grid, intended)
 
             # 4) “clip” intended to real next_state (bounce back on wall/obstacle/boundary)
-            if (not (0 <= intended[0] < self.grid.shape[0] and
-                     0 <= intended[1] < self.grid.shape[1])) \
-               or self.grid[intended] in {1, 2}:
+            if self.grid[intended] in {1, 2}:
                 next_s = state
             else:
                 next_s = intended
 
             model.append((next_s, p, r))
 
+        # sanity check: probabilities sum to 1
+        total_p = sum(p for _, p, _ in model)
+        assert abs(total_p - 1.0) < 1e-6, f"Transition probs sum to {total_p}, not 1.0"
+        
         return model
 
     

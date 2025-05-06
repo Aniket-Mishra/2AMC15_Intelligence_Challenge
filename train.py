@@ -58,7 +58,7 @@ def main(grid_paths: list[Path], no_gui: bool, iters: int, fps: int,
         for a in env.get_action_space():
             print(f" Action {a!r} ({action_to_direction(a)}):")
             for (s_prime, prob, rew) in env.get_transition_model(state, a):
-                print(f"   → next={s_prime!r},  p={prob:.2f},  r={rew}")
+                print(f"   → next={s_prime!r},  p={prob:.6f},  r={rew}")
 
         
         # Initialize agent

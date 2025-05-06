@@ -18,7 +18,6 @@ def custom_reward_function(grid, agent_pos) -> float:
             reward = -1
         case 1 | 2:  # Moved to a wall or obstacle
             reward = -7
-            pass
         case 3:  # Moved to a target tile
             reward = 50
             # "Illegal move"
