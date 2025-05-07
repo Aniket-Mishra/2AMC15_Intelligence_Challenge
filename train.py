@@ -7,6 +7,7 @@ from pathlib import Path
 from tqdm import trange
 from world.reward_functions import custom_reward_function
 from world.helpers import action_to_direction
+from agents.monte_carlo_agent_on_policy import MonteCarloAgent
 
 try:
     from world import Environment
@@ -62,23 +63,30 @@ def main(grid_paths: list[Path], no_gui: bool, iters: int, fps: int,
 
         
         # Initialize agent
-        agent = RandomAgent()
+        agent = MonteCarloAgent(action_space=[0, 1, 2, 3], epsilon=0.1, gamma=0.99)
         
         # Always reset the environment to initial state
         state = env.reset()
         for _ in trange(iters):
-            
-            # Agent takes an action based on the latest observation and info.
+            # Agent takes an action based on the latest observation
             action = agent.take_action(state)
 
-            # The action is performed in the environment
-            state, reward, terminated, info = env.step(action)
-            
-            # If the final state is reached, stop.
+            # Perform action in the environment
+            next_state, reward, terminated, info = env.step(action)
+
+            # Update agent with full transition
+            agent.update(state, action, reward, next_state, terminated)
+
+            # Move to the next state
+            state = next_state
+
+            # Stop if episode ends
             if terminated:
                 break
 
-            agent.update(state, reward, info["actual_action"])
+            agent.update(state, action, reward, next_state, terminated)
+
+
 
         # Evaluate the agent
         Environment.evaluate_agent(grid, agent, iters, sigma, agent_start_pos=agent_start_pos, reward_fn=custom_reward_function, random_seed=random_seed)
