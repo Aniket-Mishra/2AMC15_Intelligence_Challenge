@@ -1,91 +1,93 @@
-"""
-Train your RL Agent in this file. 
-"""
+# """
+# Train your RL Agent in this file. 
+# """
 
-from argparse import ArgumentParser
+import importlib
+import json
+import inspect
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from tqdm import trange
+from typing import Any, Tuple
+
 from world.reward_functions import custom_reward_function
 from world.helpers import action_to_direction
+from world import Environment
 
-try:
-    from world import Environment
-    from agents.random_agent import RandomAgent
-except ModuleNotFoundError:
-    from os import path
-    from os import pardir
-    import sys
-    root_path = path.abspath(path.join(
-        path.join(path.abspath(__file__), pardir), pardir)
-    )
-    if root_path not in sys.path:
-        sys.path.extend(root_path)
-    from world import Environment
-    from agents.random_agent import RandomAgent
-
-def parse_args():
-    p = ArgumentParser(description="DIC Reinforcement Learning Trainer.")
-    p.add_argument("GRID", type=Path, nargs="+",
-                   help="Paths to the grid file to use. There can be more than "
-                        "one.")
-    p.add_argument("--no_gui", action="store_true",
-                   help="Disables rendering to train faster")
-    p.add_argument("--sigma", type=float, default=0.1,
-                   help="Sigma value for the stochasticity of the environment.")
-    p.add_argument("--fps", type=int, default=30,
-                   help="Frames per second to render at. Only used if "
-                        "no_gui is not set.")
-    p.add_argument("--iter", type=int, default=1000,
-                   help="Number of iterations to go through.")
-    p.add_argument("--random_seed", type=int, default=0,
-                   help="Random seed value for the environment.")
+def parse_args() -> Namespace:
+    p = ArgumentParser(description="DIC RL Agent Trainer")
+    p.add_argument("GRID", type=Path, nargs="+", help="Path(s) to grid file(s)")
+    p.add_argument("--agent", type=str, default="RandomAgent", help="Name of the agent to use")
+    p.add_argument("--no_gui", action="store_true", help="Disable GUI rendering")
+    p.add_argument("--sigma", type=float, default=0.1, help="Environment stochasticity (sigma)")
+    p.add_argument("--fps", type=int, default=30, help="Frames per second for GUI")
+    p.add_argument("--episodes", type=int, default=1000, help="Number of episodes")
+    p.add_argument("--iter", type=int, default=200, help="Max iterations per episode")
+    p.add_argument("--random_seed", type=int, default=0, help="Random seed")
+    p.add_argument("--agent_start_pos", nargs=2, type=int, default=[1, 1], help="Start pos of agent")
     return p.parse_args()
 
 
-def main(grid_paths: list[Path], no_gui: bool, iters: int, fps: int,
-         sigma: float, random_seed: int, agent_start_pos: tuple[int,int]):
-    """Main loop of the program."""
+def load_agent(agent_name: str, env: Environment):
+    with open("agent_config.json", "r") as f:
+        config = json.load(f)
+    if agent_name not in config:
+        raise ValueError(f"Agent '{agent_name}' not found in config.")
+    
+    agent_info = config[agent_name]
+    module = importlib.import_module(agent_info["module"])
+    AgentClass = getattr(module, agent_info["class"])
+    init_args = agent_info.get("init_args", {})
 
-    for grid in grid_paths:
+    sig = inspect.signature(AgentClass.__init__)
+    if 'env' in sig.parameters:
+        agent = AgentClass(env=env, **init_args)
+    else:
+        agent = AgentClass(**init_args)
+
+    return agent, agent_info["train_mode"]
+
+
+def main(args: Namespace):
+    start_pos = tuple(args.agent_start_pos)
+
+    for grid in args.GRID:
+        env = Environment(
+            grid, args.no_gui, sigma=args.sigma, agent_start_pos=start_pos,
+            reward_fn=custom_reward_function, target_fps=args.fps, random_seed=args.random_seed
+        )
+        env.reset()
+        agent, mode = load_agent(args.agent, env)
         
-        # Set up the environment
-        env = Environment(grid, no_gui, sigma=sigma, agent_start_pos=agent_start_pos, reward_fn=custom_reward_function, target_fps=fps, 
-                          random_seed=random_seed)
-        
-        state = env.reset()
-        # The model
-        print(f"\nTransition model at start‐state {state!r}:")
-        for a in env.get_action_space():
-            print(f" Action {a!r} ({action_to_direction(a)}):")
-            for (s_prime, prob, rew) in env.get_transition_model(state, a):
-                print(f"   → next={s_prime!r},  p={prob:.6f},  r={rew}")
+        if mode == "episodic":
+            for _ in trange(args.episodes, desc=f"Training {args.agent}"):
+                state = env.reset()
+                for _ in range(args.iter):
+                    action = agent.take_action(state)
+                    state, reward, terminated, info = env.step(action)
+                    if terminated:
+                        break
+                    agent.update(state, reward, info["actual_action"])
 
-        
-        # Initialize agent
-        agent = RandomAgent()
-        
-        # Always reset the environment to initial state
-        state = env.reset()
-        for _ in trange(iters):
-            
-            # Agent takes an action based on the latest observation and info.
-            action = agent.take_action(state)
+        elif mode == "iterative":
+            state = env.reset()
+            for _ in trange(args.iter, desc=f"Training {args.agent}"):
+                action = agent.take_action(state)
+                state, reward, terminated, info = env.step(action)
+                if terminated:
+                    break
+                agent.update(state, reward, info["actual_action"])
 
-            # The action is performed in the environment
-            state, reward, terminated, info = env.step(action)
-            
-            # If the final state is reached, stop.
-            if terminated:
-                break
+        else:
+            raise ValueError(f"Unknown training mode '{mode}' for agent '{args.agent}'")
 
-            agent.update(state, reward, info["actual_action"])
-
-        # Evaluate the agent
-        Environment.evaluate_agent(grid, agent, iters, sigma, agent_start_pos=agent_start_pos, reward_fn=custom_reward_function, random_seed=random_seed)
+        # Evaluation
+        Environment.evaluate_agent(
+            grid, agent, args.iter, args.sigma, agent_start_pos=start_pos,
+            reward_fn=custom_reward_function, random_seed=args.random_seed
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parse_args()
-    #Hard-coded --> Set the initial starting position for both training and evaluating
-    agent_start_pos=(1, 1)
-    main(args.GRID, args.no_gui, args.iter, args.fps, args.sigma, args.random_seed, agent_start_pos)
+    main(args)
