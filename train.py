@@ -68,6 +68,8 @@ def main(args: Namespace):
                     if terminated:
                         break
                     agent.update(state, reward, info["actual_action"])
+            # Set epsilon to 0 so the agent always uses the best action
+            agent.eval_mode()
 
         elif mode == "iterative":
             state = env.reset()
