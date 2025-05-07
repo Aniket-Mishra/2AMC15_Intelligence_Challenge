@@ -1,0 +1,69 @@
+{
+        "QLearningAgent": {
+          "module": "agents.Q_learning_agent",
+          "class": "QLearningAgent",
+          "init_args": {
+            "alpha0": 0.2,
+            "epsilon0": 0.2,
+            "gamma": 0.9,
+            "Q_default": 0.0
+          },
+          "train_mode": "episodic"
+        },
+    "RandomAgent":{
+       "module":"agents.random_agent",
+       "class":"RandomAgent",
+       "init_args":{
+          
+       },
+       "train_mode":"iterative"
+    },
+    "DPAgentOff":{
+       "module":"agents.1_dp_agent_off_policy",
+       "class":"Mordekaiser_The_Revenant",
+       "init_args":{
+          
+       },
+       "train_mode":"iterative"
+    },
+    "DPAgentOn":{
+       "module":"agents.1_dp_agent_on_policy",
+       "class":"Sion_the_Undying",
+       "init_args":{
+          
+       },
+       "train_mode":"iterative"
+    },
+    "MCAgentOff":{
+       "module":"agents.1_monte_carlo_agent_off_policy",
+       "class":"Pero_the_Cute",
+       "init_args":{
+          
+       },
+       "train_mode":"iterative"
+    },
+    "MCAgentOn":{
+       "module":"agents.1_monte_carlo_agent_on_policy",
+       "class":"Leonidas_the_Brave",
+       "init_args":{
+          
+       },
+       "train_mode":"iterative"
+    },
+    "TDAgentOff":{
+       "module":"agents.1_td_agent_off_policy",
+       "class":"Artemis_the_Huntress",
+       "init_args":{
+          
+       },
+       "train_mode":"iterative"
+    },
+    "TDAgentOn":{
+       "module":"agents.1_td_agent_on_policy",
+       "class":"Aatrox_the_Darkin_Blade",
+       "init_args":{
+          
+       },
+       "train_mode":"iterative"
+    }
+ }
