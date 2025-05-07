@@ -10,6 +10,19 @@
           },
           "train_mode": "episodic"
         },
+        "QLearningAgent_2": {
+            "module": "agents.qlearn",
+            "class": "QLearningAgent_2",
+            "init_args": {
+              "alpha": 0.1,
+              "gamma": 0.9,
+              "epsilon": 0.5,
+              "epsilon_decay": 0.95,
+              "epsilon_min": 0.01,
+              "num_actions": [0, 1, 2, 3]
+            },
+            "train_mode": "episodic"
+          },
     "RandomAgent":{
        "module":"agents.random_agent",
        "class":"RandomAgent",

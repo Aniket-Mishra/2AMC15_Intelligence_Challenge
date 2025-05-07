@@ -1,7 +1,7 @@
 import numpy as np
 from agents import BaseAgent
 
-class QLearningAgent(BaseAgent):
+class QLearningAgent_2(BaseAgent):
     def __init__(self,
                  alpha: float = 0.1,
                  gamma: float = 0.9,
@@ -27,7 +27,7 @@ class QLearningAgent(BaseAgent):
             action = np.random.choice(self.num_actions)
         else:
             action = int(np.argmax(self.q_table[state]))
-        print(action)
+        # print(action) # Way too many prints
         return action
 
     def update(self, state: tuple[int, int], next_state: tuple[int, int], reward: float, action: int):
