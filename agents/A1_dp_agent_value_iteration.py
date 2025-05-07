@@ -1,6 +1,9 @@
 #Sources: https://www.geeksforgeeks.org/implement-value-iteration-in-python/
 from agents import BaseAgent
-def run_value_iteration(env, gamma, theta):
+from world import Environment
+
+
+def run_value_iteration(env: Environment, gamma: float, theta: float):
     # Initially set V to 0 for all states
     V = {s: 0.0 for s in env.get_state_space()}
 
@@ -24,7 +27,7 @@ def run_value_iteration(env, gamma, theta):
     return V, policy
 
 
-def get_action_values(s, V, env, gamma):
+def get_action_values(s: tuple[int, int], V: dict, env: Environment, gamma: float):
     action_values = []
     for a in env.get_action_space():
         q = 0
@@ -34,7 +37,7 @@ def get_action_values(s, V, env, gamma):
     return action_values
 
 
-def extract_greedy_policy(V, env, gamma):
+def extract_greedy_policy(V: dict, env: Environment, gamma: float):
     policy = {}
     for s in V:
         best_a = None
