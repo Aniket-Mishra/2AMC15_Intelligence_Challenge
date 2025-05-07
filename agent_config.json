@@ -65,5 +65,15 @@
           
        },
        "train_mode":"iterative"
+    },
+    "ValueIterationAgent":{
+       "module":"agents.A1_dp_agent_value_iteration",
+       "class":"ValueIterationAgent",
+       "init_args":{
+        "theta": 1e-6,
+        "gamma": 0.99
+       },
+       "train_mode":"iterative"
     }
+    
  }

@@ -4,15 +4,17 @@
 
 import importlib
 import json
-from argparse import ArgumentParser
+import inspect
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from tqdm import trange
+from typing import Any, Tuple
+
 from world.reward_functions import custom_reward_function
 from world.helpers import action_to_direction
 from world import Environment
 
-
-def parse_args():
+def parse_args() -> Namespace:
     p = ArgumentParser(description="DIC RL Agent Trainer")
     p.add_argument("GRID", type=Path, nargs="+", help="Path(s) to grid file(s)")
     p.add_argument("--agent", type=str, default="RandomAgent", help="Name of the agent to use")
@@ -26,7 +28,7 @@ def parse_args():
     return p.parse_args()
 
 
-def load_agent(agent_name: str):
+def load_agent(agent_name: str, env: Environment):
     with open("agent_config.json", "r") as f:
         config = json.load(f)
     if agent_name not in config:
@@ -35,12 +37,18 @@ def load_agent(agent_name: str):
     agent_info = config[agent_name]
     module = importlib.import_module(agent_info["module"])
     AgentClass = getattr(module, agent_info["class"])
-    agent = AgentClass(**agent_info.get("init_args", {}))
+    init_args = agent_info.get("init_args", {})
+
+    sig = inspect.signature(AgentClass.__init__)
+    if 'env' in sig.parameters:
+        agent = AgentClass(env=env, **init_args)
+    else:
+        agent = AgentClass(**init_args)
+
     return agent, agent_info["train_mode"]
 
 
-def main(args):
-    agent, mode = load_agent(args.agent)
+def main(args: Namespace):
     start_pos = tuple(args.agent_start_pos)
 
     for grid in args.GRID:
@@ -48,6 +56,8 @@ def main(args):
             grid, args.no_gui, sigma=args.sigma, agent_start_pos=start_pos,
             reward_fn=custom_reward_function, target_fps=args.fps, random_seed=args.random_seed
         )
+        env.reset()
+        agent, mode = load_agent(args.agent, env)
         
         if mode == "episodic":
             for _ in trange(args.episodes, desc=f"Training {args.agent}"):
