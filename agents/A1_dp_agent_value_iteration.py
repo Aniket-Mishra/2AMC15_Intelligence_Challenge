@@ -1,6 +1,6 @@
 #Sources: https://www.geeksforgeeks.org/implement-value-iteration-in-python/
-
-def run_value_iteration(env, gamma=0.99, theta=1e-6):
+from agents import BaseAgent
+def run_value_iteration(env, gamma, theta):
     # Initially set V to 0 for all states
     V = {s: 0.0 for s in env.get_state_space()}
 
@@ -48,4 +48,22 @@ def extract_greedy_policy(V, env, gamma):
     return policy
 
 
+class ValueIterationAgent(BaseAgent):
+    def __init__(self, env, gamma=0.99, theta=1e-6):
+        """
+        Runs value iteration on the current environment setup to produce an optimal policy
+        """
+        super().__init__()
+        self.V, self.policy = run_value_iteration(env, gamma, theta)
 
+    def take_action(self, observation):
+        """
+        Take action depending on the current state of the agent
+        """
+        return self.policy[observation]
+
+    def update(self, *args, **kwargs):
+        """
+        No updates needed because DP is offline, so no online learning
+        """
+        pass
