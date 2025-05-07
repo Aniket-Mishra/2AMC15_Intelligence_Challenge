@@ -1,10 +1,7 @@
-# """
-# Train your RL Agent in this file. 
-# """
-
 import importlib
 import json
 import inspect
+from inspect import Parameter
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from tqdm import trange
@@ -50,6 +47,26 @@ def load_agent(agent_name: str, env: Environment) -> Tuple[BaseAgent, str]:
     return agent, agent_info["train_mode"]
 
 
+def update_agent(agent: BaseAgent, args: Namespace,
+                        state: tuple[int, int],
+                        next_state: tuple[int, int],
+                        reward: float,
+                        actual_action: int) -> None:
+    update_params = inspect.signature(agent.update).parameters
+    update_param_names = list(update_params)
+
+    if {"state", "next_state"}.issubset(update_param_names):
+        agent.update(state=state, next_state=next_state, reward=reward, action=actual_action)
+    elif {"next_state", "reward", "action"}.issubset(update_param_names):
+        agent.update(next_state=next_state, reward=reward, action=actual_action)
+    elif {"state", "reward", "action"}.issubset(update_param_names):
+        agent.update(state=state, reward=reward, action=actual_action)
+    elif all(p.kind in {Parameter.VAR_POSITIONAL, Parameter.VAR_KEYWORD} for p in update_params.values()):
+        agent.update()
+    else:
+        raise ValueError(f"Agent '{args.agent}' has an unsupported update() signature: {update_param_names}")
+
+
 def main(args: Namespace) -> None:
     start_pos: Tuple[int, int] = tuple(args.agent_start_pos)
 
@@ -61,9 +78,6 @@ def main(args: Namespace) -> None:
         env.reset()
         agent, mode = load_agent(args.agent, env)
 
-        update_params = inspect.signature(agent.update).parameters
-        update_param_names = list(update_params)
-
         if mode == "episodic":
             for _ in trange(args.episodes, desc=f"Training {args.agent}"):
                 state = env.reset()
@@ -71,12 +85,7 @@ def main(args: Namespace) -> None:
                     action = agent.take_action(state)
                     next_state, reward, terminated, info = env.step(action)
 
-                    if {"state", "next_state"}.issubset(update_param_names):
-                        agent.update(state=state, next_state=next_state, reward=reward, action=info["actual_action"])
-                    elif {"next_state", "reward", "action"}.issubset(update_param_names):
-                        agent.update(next_state=next_state, reward=reward, action=info["actual_action"])
-                    else:
-                        raise ValueError(f"Agent '{args.agent}' has an unsupported update() signature: {update_param_names}")
+                    update_agent(agent, args, state, next_state, reward, info["actual_action"])
 
                     state = next_state
                     if terminated:
@@ -88,12 +97,7 @@ def main(args: Namespace) -> None:
                 action = agent.take_action(state)
                 next_state, reward, terminated, info = env.step(action)
 
-                if {"state", "next_state"}.issubset(update_param_names):
-                    agent.update(state=state, next_state=next_state, reward=reward, action=info["actual_action"])
-                elif {"next_state", "reward", "action"}.issubset(update_param_names):
-                    agent.update(next_state=next_state, reward=reward, action=info["actual_action"])
-                else:
-                    raise ValueError(f"Agent '{args.agent}' has an unsupported update() signature: {update_param_names}")
+                update_agent(agent, args, state, next_state, reward, info["actual_action"])
 
                 state = next_state
                 if terminated:
