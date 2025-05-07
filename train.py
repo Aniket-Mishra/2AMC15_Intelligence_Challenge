@@ -5,6 +5,8 @@ Train your RL Agent in this file.
 from argparse import ArgumentParser
 from pathlib import Path
 from tqdm import trange
+from world.reward_functions import custom_reward_function
+from world.helpers import action_to_direction
 
 try:
     from world import Environment
@@ -41,14 +43,23 @@ def parse_args():
 
 
 def main(grid_paths: list[Path], no_gui: bool, iters: int, fps: int,
-         sigma: float, random_seed: int):
+         sigma: float, random_seed: int, agent_start_pos: tuple[int,int]):
     """Main loop of the program."""
 
     for grid in grid_paths:
         
         # Set up the environment
-        env = Environment(grid, no_gui,sigma=sigma, target_fps=fps, 
+        env = Environment(grid, no_gui, sigma=sigma, agent_start_pos=agent_start_pos, reward_fn=custom_reward_function, target_fps=fps, 
                           random_seed=random_seed)
+        
+        state = env.reset()
+        # The model
+        print(f"\nTransition model at start‐state {state!r}:")
+        for a in env.get_action_space():
+            print(f" Action {a!r} ({action_to_direction(a)}):")
+            for (s_prime, prob, rew) in env.get_transition_model(state, a):
+                print(f"   → next={s_prime!r},  p={prob:.6f},  r={rew}")
+
         
         # Initialize agent
         agent = RandomAgent()
@@ -70,9 +81,11 @@ def main(grid_paths: list[Path], no_gui: bool, iters: int, fps: int,
             agent.update(state, reward, info["actual_action"])
 
         # Evaluate the agent
-        Environment.evaluate_agent(grid, agent, iters, sigma, random_seed=random_seed)
+        Environment.evaluate_agent(grid, agent, iters, sigma, agent_start_pos=agent_start_pos, reward_fn=custom_reward_function, random_seed=random_seed)
 
 
 if __name__ == '__main__':
     args = parse_args()
-    main(args.GRID, args.no_gui, args.iter, args.fps, args.sigma, args.random_seed)
+    #Hard-coded --> Set the initial starting position for both training and evaluating
+    agent_start_pos=(1, 1)
+    main(args.GRID, args.no_gui, args.iter, args.fps, args.sigma, args.random_seed, agent_start_pos)
