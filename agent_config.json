@@ -1,12 +1,14 @@
 {
         "QLearningAgent": {
-          "module": "agents.Q_learning_agent",
-          "class": "QLearningAgent",
-          "init_args": {
-            "alpha0": 0.2,
-            "epsilon0": 0.2,
-            "gamma": 0.9,
-            "Q_default": 0.0
+          "module": "agents.qlearn",
+            "class": "QLearningAgent",
+            "init_args": {
+              "alpha": 0.1,
+              "gamma": 0.9,
+              "epsilon": 0.5,
+              "epsilon_decay": 0.9,
+              "epsilon_min": 0.01,
+              "num_actions": [0, 1, 2, 3]
           },
           "train_mode": "episodic"
         },

@@ -9,6 +9,7 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from tqdm import trange
 from typing import Any, Tuple
+import numpy as np
 
 from world.reward_functions import custom_reward_function
 from world.helpers import action_to_direction
@@ -60,14 +61,35 @@ def main(args: Namespace):
         agent, mode = load_agent(args.agent, env)
         
         if mode == "episodic":
+            #Max difference for convergence check
+            delta = 1e-6
             for _ in trange(args.episodes, desc=f"Training {args.agent}"):
+                # Save a copy of the current Q-table for convergence check
+                prev_q_table = {
+                    s: np.copy(q_values) for s, q_values in agent.q_table.items()
+                }
                 state = env.reset()
                 for _ in range(args.iter):
                     action = agent.take_action(state)
-                    state, reward, terminated, info = env.step(action)
+                    next_state, reward, terminated, info = env.step(action)
                     if terminated:
                         break
-                    agent.update(state, reward, info["actual_action"])
+                    agent.update(state, next_state, reward, info["actual_action"])
+                    state = next_state
+                # # Convergence check
+                common_states = set(agent.q_table.keys()) & set(prev_q_table.keys())
+                if not common_states:
+                    max_diff = 10
+                else:
+                    max_diff = max(
+                        np.max(np.abs(agent.q_table[s] - prev_q_table[s]))
+                        for s in common_states
+                    )
+
+                # Stopping criterion
+                if max_diff < delta:
+                    break
+    
             # Set epsilon to 0 so the agent always uses the best action
             agent.eval_mode()
 
