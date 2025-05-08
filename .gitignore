@@ -1,3 +1,4 @@
 # ignore all evaluation outputs
 results/
 **/__pycache__/
+*.pyc 

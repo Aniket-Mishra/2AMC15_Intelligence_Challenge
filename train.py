@@ -1,10 +1,7 @@
-# """
-# Train your RL Agent in this file. 
-# """
-
 import importlib
 import json
 import inspect
+from inspect import Parameter
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from tqdm import trange
@@ -14,6 +11,8 @@ import numpy as np
 from world.reward_functions import custom_reward_function
 from world.helpers import action_to_direction
 from world import Environment
+from agents import BaseAgent
+
 
 def parse_args() -> Namespace:
     p = ArgumentParser(description="DIC RL Agent Trainer")
@@ -29,7 +28,7 @@ def parse_args() -> Namespace:
     return p.parse_args()
 
 
-def load_agent(agent_name: str, env: Environment):
+def load_agent(agent_name: str, env: Environment) -> Tuple[BaseAgent, str]:
     with open("agent_config.json", "r") as f:
         config = json.load(f)
     if agent_name not in config:
@@ -49,8 +48,28 @@ def load_agent(agent_name: str, env: Environment):
     return agent, agent_info["train_mode"]
 
 
-def main(args: Namespace):
-    start_pos = tuple(args.agent_start_pos)
+def update_agent(agent: BaseAgent, args: Namespace,
+                        state: tuple[int, int],
+                        next_state: tuple[int, int],
+                        reward: float,
+                        actual_action: int) -> None:
+    update_params = inspect.signature(agent.update).parameters
+    update_param_names = list(update_params)
+
+    if {"state", "next_state"}.issubset(update_param_names):
+        agent.update(state=state, next_state=next_state, reward=reward, action=actual_action)
+    elif {"next_state", "reward", "action"}.issubset(update_param_names):
+        agent.update(next_state=next_state, reward=reward, action=actual_action)
+    elif {"state", "reward", "action"}.issubset(update_param_names):
+        agent.update(state=state, reward=reward, action=actual_action)
+    elif all(p.kind in {Parameter.VAR_POSITIONAL, Parameter.VAR_KEYWORD} for p in update_params.values()):
+        agent.update()
+    else:
+        raise ValueError(f"Agent '{args.agent}' has an unsupported update() signature: {update_param_names}")
+
+
+def main(args: Namespace) -> None:
+    start_pos: Tuple[int, int] = tuple(args.agent_start_pos)
 
     for grid in args.GRID:
         env = Environment(
@@ -59,7 +78,7 @@ def main(args: Namespace):
         )
         env.reset()
         agent, mode = load_agent(args.agent, env)
-        
+
         if mode == "episodic":
             #Max difference for convergence check
             delta = 1e-6
@@ -72,6 +91,7 @@ def main(args: Namespace):
                 for _ in range(args.iter):
                     action = agent.take_action(state)
                     next_state, reward, terminated, info = env.step(action)
+
                     if terminated:
                         break
                     agent.update(state, next_state, reward, info["actual_action"])
@@ -93,19 +113,22 @@ def main(args: Namespace):
             # Set epsilon to 0 so the agent always uses the best action
             agent.eval_mode()
 
+
         elif mode == "iterative":
             state = env.reset()
             for _ in trange(args.iter, desc=f"Training {args.agent}"):
                 action = agent.take_action(state)
-                state, reward, terminated, info = env.step(action)
+                next_state, reward, terminated, info = env.step(action)
+
+                update_agent(agent, args, state, next_state, reward, info["actual_action"])
+
+                state = next_state
                 if terminated:
                     break
-                agent.update(state, reward, info["actual_action"])
 
         else:
             raise ValueError(f"Unknown training mode '{mode}' for agent '{args.agent}'")
 
-        # Evaluation
         Environment.evaluate_agent(
             grid, agent, args.iter, args.sigma, agent_start_pos=start_pos,
             reward_fn=custom_reward_function, random_seed=args.random_seed
@@ -113,5 +136,5 @@ def main(args: Namespace):
 
 
 if __name__ == "__main__":
-    args = parse_args()
+    args: Namespace = parse_args()
     main(args)
