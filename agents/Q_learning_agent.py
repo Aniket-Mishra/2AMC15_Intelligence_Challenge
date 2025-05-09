@@ -50,6 +50,12 @@ class QLearningAgent(BaseAgent):
         else:
             return self.get_best_action(state)
         
+    def eval_mode(self):
+        '''Sets the agent to evaluation mode (call after training).
+        This sets epsilon to 0, so the agent only takes the best action and doesn't explore.
+        If necessary, other stuff could be added here as well.'''
+        self.epsilon = 0
+        
     def get_Q(self, state: tuple[int, int], action) -> float:
         '''Helper function; returns Q[state, action] if the given state-action pair 
         has been visited before, or Q_default otherwise.'''
