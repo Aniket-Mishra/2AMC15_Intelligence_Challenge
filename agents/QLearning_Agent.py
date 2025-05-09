@@ -1,7 +1,7 @@
 import numpy as np
 from agents import BaseAgent
 
-class QLearningAgent_2(BaseAgent):
+class QLearningAgent(BaseAgent):
     def __init__(self,
                  alpha: float = 0.1,
                  gamma: float = 0.9,
