@@ -81,7 +81,7 @@ def main(args: Namespace) -> None:
 
         if mode == "episodic":
             #Max difference for convergence check
-            metrics = {"iterations": 0, "deltas": []}
+            metrics = {"iterations": 0, "deltas": [], "rewards": []}
             delta = 1e-7
             
             for ep in trange(args.episodes, desc=f"Training {args.agent}"):
@@ -90,10 +90,11 @@ def main(args: Namespace) -> None:
                     s: np.copy(q_values) for s, q_values in agent.q_table.items()
                 }
                 state = env.reset()
+                ep_reward = 0.0
                 for _ in range(args.iter):
                     action = agent.take_action(state)
                     next_state, reward, terminated, info = env.step(action)
-
+                    ep_reward += reward
                     if terminated:
                         break
                     #only start decaying epsilon after a number of episodes have passed
@@ -113,6 +114,7 @@ def main(args: Namespace) -> None:
                         for s in common_states
                     )
                 metrics["deltas"].append(max_diff)
+                metrics["rewards"].append(ep_reward)
                 # Stopping criterion
                 if max_diff < delta:
                     metrics["iterations"] = ep

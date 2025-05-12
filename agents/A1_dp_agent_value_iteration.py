@@ -9,6 +9,10 @@ def run_value_iteration(env: Environment, gamma: float, theta: float):
 
     deltas: list[float] = []
     iteration = 0
+    values = []
+    mean_values = []
+
+    start_state = env.reset()
 
     while True:
         # Store delta to exit the loop when the change in value is lower than theta
@@ -23,6 +27,9 @@ def run_value_iteration(env: Environment, gamma: float, theta: float):
         # Track the maximum change in delta
         deltas.append(delta)
         iteration += 1
+        values.append(V[start_state])
+        mean_values.append(sum(V.values()) / len(V))
+
         if delta < theta:
             break
 
@@ -33,6 +40,8 @@ def run_value_iteration(env: Environment, gamma: float, theta: float):
     metrics = {
         "iterations": iteration,
         "deltas": deltas,
+        "values": values,
+        "mean_values": mean_values
     }
 
     return V, policy, metrics
