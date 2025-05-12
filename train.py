@@ -1,6 +1,6 @@
 import importlib
-import json
 import inspect
+import os, json, datetime
 from inspect import Parameter
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
@@ -81,8 +81,9 @@ def main(args: Namespace) -> None:
 
         if mode == "episodic":
             #Max difference for convergence check
+            metrics = {"iterations": 0, "deltas": []}
             delta = 1e-6
-            for _ in trange(args.episodes, desc=f"Training {args.agent}"):
+            for ep in trange(args.episodes, desc=f"Training {args.agent}"):
                 # Save a copy of the current Q-table for convergence check
                 prev_q_table = {
                     s: np.copy(q_values) for s, q_values in agent.q_table.items()
@@ -105,10 +106,16 @@ def main(args: Namespace) -> None:
                         np.max(np.abs(agent.q_table[s] - prev_q_table[s]))
                         for s in common_states
                     )
-
+                metrics["deltas"].append(max_diff)
                 # Stopping criterion
                 if max_diff < delta:
+                    metrics["iterations"] = ep
                     break
+
+            if metrics["iterations"] == 0:
+                metrics["iterations"] = args.episodes
+
+            agent.metrics = metrics
     
             # Set epsilon to 0 so the agent always uses the best action
             agent.eval_mode()
@@ -128,6 +135,21 @@ def main(args: Namespace) -> None:
 
         else:
             raise ValueError(f"Unknown training mode '{mode}' for agent '{args.agent}'")
+
+        if hasattr(agent, "metrics"):
+            its = agent.metrics.get("iterations", None)
+            print(f"[Metrics] {args.agent} converged in {its} iterations")
+            metrics_dir = "metrics"
+            os.makedirs(metrics_dir, exist_ok=True)
+            ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            fname = f"{args.agent}_{ts}.json"
+            path = os.path.join(metrics_dir, fname)
+        try:
+            with open(path, "w") as mf:
+                json.dump(agent.metrics, mf, indent=2)
+                print(f"[Metrics] Saved convergence data to {path}")
+        except Exception as e:
+            print(f"[Metrics] ERROR saving metrics: {e}")
 
         Environment.evaluate_agent(
             grid, agent, args.iter, args.sigma, agent_start_pos=start_pos,
