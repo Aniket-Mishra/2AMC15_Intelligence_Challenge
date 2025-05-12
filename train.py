@@ -82,7 +82,8 @@ def main(args: Namespace) -> None:
         if mode == "episodic":
             #Max difference for convergence check
             metrics = {"iterations": 0, "deltas": []}
-            delta = 1e-6
+            delta = 1e-7
+            
             for ep in trange(args.episodes, desc=f"Training {args.agent}"):
                 # Save a copy of the current Q-table for convergence check
                 prev_q_table = {
@@ -95,12 +96,17 @@ def main(args: Namespace) -> None:
 
                     if terminated:
                         break
-                    agent.update(state, next_state, reward, info["actual_action"])
+                    #only start decaying epsilon after a number of episodes have passed
+                    if ep < args.episodes/10:
+                        ep_decay = False
+                    else:
+                        ep_decay = True
+                    agent.update(ep_decay, state, next_state, reward, info["actual_action"])
                     state = next_state
                 # # Convergence check
                 common_states = set(agent.q_table.keys()) & set(prev_q_table.keys())
                 if not common_states:
-                    max_diff = 10
+                    max_diff = 1
                 else:
                     max_diff = max(
                         np.max(np.abs(agent.q_table[s] - prev_q_table[s]))
