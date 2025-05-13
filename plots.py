@@ -12,65 +12,84 @@ def load_metrics():
     for fname in os.listdir(METRICS_DIR):
         if not fname.endswith(".json"):
             continue
+
         path = os.path.join(METRICS_DIR, fname)
-        with open(path, "r") as f:
-            try:
+        try:
+            with open(path, "r") as f:
                 metrics = json.load(f)
-                if "deltas" in metrics or "mean_values" in metrics or "rewards" in metrics:
-                    agent_name = fname.split("_")[0]  
-                    all_data[agent_name] = metrics
-            except Exception as e:
-                print(f"Failed to load {fname}: {e}")
+
+            if "deltas" in metrics or "mean_values" in metrics or "rewards" in metrics:
+                base_name = fname[:-5]  # Strip '.json'
+                agent_parts = base_name.split("_", 1)
+                agent_name = agent_parts[0]
+                param_str = agent_parts[1] if len(agent_parts) > 1 else "default"
+
+                if agent_name not in all_data:
+                    all_data[agent_name] = {}
+                all_data[agent_name][param_str] = metrics
+
+        except Exception as e:
+            print(f"Failed to load {fname}: {e}")
     return all_data
 
 
-def plot_per_agent(all_data):
-    for agent, metrics in all_data.items():
-        deltas = metrics.get("deltas", [])
-        if not deltas:
-            continue
+def plot_convergence(all_data):
+    for agent, variants in all_data.items():
+        plt.figure(figsize=(10, 5))
+        for param_str, metrics in variants.items():
+            deltas = metrics.get("deltas", [])
+            if not deltas:
+                continue
+            episodes = list(range(len(deltas)))
+            plt.plot(episodes, deltas, label=param_str)
 
-        plt.figure(figsize=(8, 4))
-        episodes = list(range(len(deltas)))
-        plt.plot(episodes, deltas, label="Raw", color="blue", linewidth=1)
         plt.xlabel("Episode")
         plt.ylabel("Delta")
         plt.title(f"{agent}: Δ over Time")
         plt.grid(True)
-        plt.legend()
+        plt.legend(fontsize="small", loc="best")
         output_path = os.path.join(OUTPUT_DIR, f"{agent}_deltas.png")
         plt.tight_layout()
         plt.savefig(output_path)
         plt.close()
         print(f"[Plot] Saved {output_path}")
 
+
 def plot_learning_curves(all_data):
-    for agent, metrics in all_data.items():
-        plt.figure(figsize=(8, 4))
+    for agent, variants in all_data.items():
+        plt.figure(figsize=(10, 5))
+        plotted = False
+        ylabel = xlabel = title = ""
 
-        if "mean_values" in metrics:
-            # Value Iteration agent
-            plt.plot(metrics["mean_values"], label="Avg V(s)", color="green")
-            plt.ylabel("Average Value")
-            plt.title(f"{agent}: Mean V(s) over Iterations")
+        for param_str, metrics in variants.items():
+            if "mean_values" in metrics:
+                plt.plot(metrics["mean_values"], label=param_str)
+                ylabel = "Average Value"
+                xlabel = "Iteration"
+                title = f"{agent}: Mean V(s) over Iterations"
+                plotted = True
 
-        elif "rewards" in metrics:
-            # QL agent
-            plt.plot(metrics["rewards"], label="Reward", color="orange")
-            plt.ylabel("Episode Reward")
-            plt.title(f"{agent}: Reward per Episode")
+            elif "rewards" in metrics:
+                plt.plot(metrics["rewards"], label=param_str)
+                ylabel = "Episode Reward"
+                xlabel = "Episode"
+                title = f"{agent}: Reward per Episode"
+                plotted = True
 
-        else:
-            continue  # Skip agents with no relevant metric
+        if not plotted:
+            continue
 
-        plt.xlabel("Iteration" if "mean_values" in metrics else "Episode")
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.title(title)
         plt.grid(True)
-        plt.legend()
-        plt.tight_layout()
+        plt.legend(fontsize="small", loc="best")
         output_path = os.path.join(OUTPUT_DIR, f"{agent}_learning_curve.png")
+        plt.tight_layout()
         plt.savefig(output_path)
         plt.close()
         print(f"[Plot] Saved learning curve: {output_path}")
+
 
 
 if __name__ == "__main__":
@@ -78,5 +97,5 @@ if __name__ == "__main__":
     if not data:
         print("No valid metrics found.")
     else:
-        plot_per_agent(data) 
+        plot_convergence(data) 
         plot_learning_curves(data)       
