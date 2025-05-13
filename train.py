@@ -1,3 +1,4 @@
+import ast
 import importlib
 import inspect
 import os, json, datetime
@@ -28,7 +29,7 @@ def parse_args() -> Namespace:
     return p.parse_args()
 
 
-def load_agent(agent_name: str, env: Environment) -> Tuple[BaseAgent, str]:
+def load_agent(agent_name: str, env: Environment) -> Tuple[BaseAgent, str, str]:
     with open("agent_config.json", "r") as f:
         config = json.load(f)
     if agent_name not in config:
@@ -45,7 +46,7 @@ def load_agent(agent_name: str, env: Environment) -> Tuple[BaseAgent, str]:
     else:
         agent = AgentClass(**init_args)
 
-    return agent, agent_info["train_mode"]
+    return agent, agent_info["train_mode"], agent_info["init_args"]
 
 
 def update_agent(agent: BaseAgent, args: Namespace,
@@ -77,7 +78,7 @@ def main(args: Namespace) -> None:
             reward_fn=custom_reward_function, target_fps=args.fps, random_seed=args.random_seed
         )
         env.reset()
-        agent, mode = load_agent(args.agent, env)
+        agent, mode, init_args = load_agent(args.agent, env)
 
         if mode == "episodic":
             #Max difference for convergence check
@@ -149,8 +150,8 @@ def main(args: Namespace) -> None:
             print(f"[Metrics] {args.agent} converged in {its} iterations")
             metrics_dir = "metrics"
             os.makedirs(metrics_dir, exist_ok=True)
-            ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            fname = f"{args.agent}_{ts}.json"
+            param_str = "_".join(f"{k}-{v}" for k, v in init_args.items())
+            fname = f"{args.agent}_{param_str}.json"
             path = os.path.join(metrics_dir, fname)
         try:
             with open(path, "w") as mf:
