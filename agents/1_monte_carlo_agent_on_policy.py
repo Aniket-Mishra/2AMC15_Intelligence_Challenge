@@ -52,3 +52,7 @@ class MonteCarloAgent(BaseAgent):
     def _state_to_key(self, state):
         """Convert state to a hashable format (e.g., tuple if it's a position)"""
         return tuple(state) if isinstance(state, (list, np.ndarray)) else state
+
+    @property
+    def q_table(self):
+        return self.Q

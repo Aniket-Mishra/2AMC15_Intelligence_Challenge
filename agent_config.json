@@ -1,12 +1,14 @@
 {
         "QLearningAgent": {
-          "module": "agents.Q_learning_agent",
-          "class": "QLearningAgent",
-          "init_args": {
-            "alpha0": 0.2,
-            "epsilon0": 0.2,
-            "gamma": 0.9,
-            "Q_default": 0.0
+          "module": "agents.QLearning_Agent",
+            "class": "QLearningAgent",
+            "init_args": {
+              "alpha": 0.1,
+              "gamma": 0.9,
+              "epsilon": 0.5,
+              "epsilon_decay": 0.9,
+              "epsilon_min": 0.01,
+              "num_actions": [0, 1, 2, 3]
           },
           "train_mode": "episodic"
         },
@@ -44,11 +46,13 @@
     },
     "MCAgentOn":{
        "module":"agents.1_monte_carlo_agent_on_policy",
-       "class":"Leonidas_the_Brave",
+       "class":"MonteCarloAgent",
        "init_args":{
-          
+         "epsilon": 0.1,
+         "gamma": 0.99,
+         "action_space": [0, 1, 2, 3] 
        },
-       "train_mode":"iterative"
+       "train_mode":"monte_carlo"
     },
     "TDAgentOff":{
        "module":"agents.1_td_agent_off_policy",
