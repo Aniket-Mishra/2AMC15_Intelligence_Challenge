@@ -98,13 +98,12 @@ def main(args: Namespace) -> None:
                     ep_reward += reward
                     if terminated:
                         break
-                    #only start decaying epsilon after a number of episodes have passed
-                    if ep < args.episodes/10:
-                        ep_decay = False
-                    else:
-                        ep_decay = True
-                    agent.update(ep_decay, state, next_state, reward, info["actual_action"])
+                    agent.update(state, next_state, reward, info["actual_action"])
                     state = next_state
+                
+                # end of episode: decay once (after warm-up)
+                if ep >= args.episodes/10:
+                    agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
                 # # Convergence check
                 common_states = set(agent.q_table.keys()) & set(prev_q_table.keys())
                 if not common_states:

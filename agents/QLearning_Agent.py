@@ -35,7 +35,7 @@ class QLearningAgent(BaseAgent):
 
         return action
 
-    def update(self, ep_decay: bool, state: tuple[int, int], next_state: tuple[int, int], reward: float, action: int):
+    def update(self, state: tuple[int, int], next_state: tuple[int, int], reward: float, action: int):
         '''Update the Q-table according to the Q-learning update rule.'''
         self._initialize_state(state)
         self._initialize_state(next_state)
@@ -45,10 +45,6 @@ class QLearningAgent(BaseAgent):
 
         # Q-learning update
         self.q_table[state][action] = current_q + self.alpha * (reward + self.gamma * max_future_q - current_q)
-
-        # Decay epsilon to minimize exploration and increase exploitation in later stages
-        if ep_decay: 
-            self.epsilon *= self.epsilon_decay
 
     def eval_mode(self):
         '''Sets the agent to evaluation mode (call after training).
