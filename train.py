@@ -19,7 +19,7 @@ def parse_args() -> Namespace:
     p.add_argument("GRID", type=Path, nargs="+", help="Path(s) to grid file(s)")
     p.add_argument("--agent", type=str, default="RandomAgent", help="Name of the agent to use")
     p.add_argument("--no_gui", action="store_true", help="Disable GUI rendering")
-    p.add_argument("--sigma", type=float, default=0.1, help="Environment stochasticity (sigma)")
+    p.add_argument("--sigma", type=float, default=0, help="Environment stochasticity (sigma)")
     p.add_argument("--fps", type=int, default=30, help="Frames per second for GUI")
     p.add_argument("--episodes", type=int, default=1000, help="Number of episodes")
     p.add_argument("--iter", type=int, default=200, help="Max iterations per episode")
@@ -125,6 +125,41 @@ def main(args: Namespace) -> None:
                 state = next_state
                 if terminated:
                     break
+
+        elif mode == "monte_carlo":
+            delta = 1e-6
+            initial_epsilon = 1.0
+            final_epsilon = 0.5
+            decay_rate = 0.995
+
+            for episode in trange(args.episodes, desc=f"Training {args.agent}"):
+                # Decay epsilon
+                agent.epsilon = max(final_epsilon, initial_epsilon * (decay_rate ** episode))
+
+                # Store Q-table copy for convergence check
+                prev_q = {s: np.copy(agent.q_table[s]) for s in agent.q_table}
+
+                state = env.reset()
+                done = False
+                while not done:
+                    action = agent.take_action(state)
+                    next_state, reward, done, info = env.step(action)
+                    agent.update(state, action, reward, next_state, done)
+                    state = next_state
+
+                # Convergence check
+                common_states = set(agent.q_table.keys()) & set(prev_q.keys())
+                if not common_states:
+                    max_diff = float('inf')
+                else:
+                    max_diff = max(
+                        np.max(np.abs(agent.q_table[s] - prev_q[s]))
+                        for s in common_states
+                    )
+                if max_diff < delta:
+                    break
+
+            agent.epsilon = 0.0  # Switch to greedy
 
         else:
             raise ValueError(f"Unknown training mode '{mode}' for agent '{args.agent}'")
