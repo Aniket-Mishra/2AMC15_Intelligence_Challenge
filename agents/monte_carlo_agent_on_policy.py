@@ -11,7 +11,7 @@ class MonteCarloAgent(BaseAgent):
         self.epsilon = epsilon
         self.gamma = gamma
         self.Q = defaultdict(lambda: np.zeros(len(action_space)))
-        self.returns = defaultdict(lambda: [[] for _ in action_space])
+        self.visit_counts = defaultdict(lambda: np.zeros(len(action_space)))  # <-- new
         self.episode = []
 
     def take_action(self, state):
@@ -28,6 +28,7 @@ class MonteCarloAgent(BaseAgent):
             self._update_Q()
             self.episode.clear()
 
+
     def _update_Q(self):
         G = 0
         visited = set()
@@ -35,10 +36,18 @@ class MonteCarloAgent(BaseAgent):
             state, action, reward = self.episode[t]
             G = self.gamma * G + reward
             state_key = self._state_to_key(state)
+
             if (state_key, action) not in visited:
-                self.returns[state_key][action].append(G)
-                self.Q[state_key][action] = np.mean(self.returns[state_key][action])
                 visited.add((state_key, action))
+
+                # Increment visit count
+                self.visit_counts[state_key][action] += 1
+                n = self.visit_counts[state_key][action]
+
+                # Incremental average update
+                q_old = self.Q[state_key][action]
+                self.Q[state_key][action] += (G - q_old) / n
+
 
     def _state_to_key(self, state):
         """Convert state to a hashable format (e.g., tuple if it's a position)"""

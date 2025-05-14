@@ -33,7 +33,7 @@ def parse_args():
                    help="Disables rendering to train faster")
     p.add_argument("--sigma", type=float, default=0.1,
                    help="Sigma value for the stochasticity of the environment.")
-    p.add_argument("--fps", type=int, default=30,
+    p.add_argument("--fps", type=int, default=-1,
                    help="Frames per second to render at. Only used if "
                         "no_gui is not set.")
     p.add_argument("--iter", type=int, default=1000,
@@ -48,12 +48,12 @@ def main(grid_paths: list[Path], no_gui: bool, iters: int, fps: int,
     """Main loop of the program."""
 
     for grid in grid_paths:
-        
         # Set up the environment
         env = Environment(grid, no_gui, sigma=sigma, agent_start_pos=agent_start_pos, reward_fn=custom_reward_function, target_fps=fps, 
                           random_seed=random_seed)
         
         state = env.reset()
+        
         # The model
         print(f"\nTransition model at start‐state {state!r}:")
         for a in env.get_action_space():
@@ -64,32 +64,32 @@ def main(grid_paths: list[Path], no_gui: bool, iters: int, fps: int,
         
         # Initialize agent
         agent = MonteCarloAgent(action_space=[0, 1, 2, 3], epsilon=0.1, gamma=0.99)
+
+        print(f"\nTraining on grid: {grid.name}")
+
+        # Epsilon decay parameters
+        initial_epsilon = 1.0
+        final_epsilon = 0.5
+        decay_rate = 0.995
+
         
-        # Always reset the environment to initial state
-        state = env.reset()
-        for _ in trange(iters):
-            # Agent takes an action based on the latest observation
-            action = agent.take_action(state)
+        for episode in trange(iters, desc="Episodes"):
+            # Decay epsilon
+            agent.epsilon = max(final_epsilon, initial_epsilon * (decay_rate ** episode))
 
-            # Perform action in the environment
-            next_state, reward, terminated, info = env.step(action)
+            state = env.reset()
+            done = False
 
-            # Update agent with full transition
-            agent.update(state, action, reward, next_state, terminated)
-
-            # Move to the next state
-            state = next_state
-
-            # Stop if episode ends
-            if terminated:
-                break
-
-            agent.update(state, action, reward, next_state, terminated)
-
+            while not done:
+                action = agent.take_action(state)
+                next_state, reward, done, info = env.step(action)
+                agent.update(state, action, reward, next_state, done)
+                state = next_state  # move to next state
 
 
         # Evaluate the agent
-        Environment.evaluate_agent(grid, agent, iters, sigma, agent_start_pos=agent_start_pos, reward_fn=custom_reward_function, random_seed=random_seed)
+        agent.epsilon = 0.0  # Greedy evaluation policy
+        Environment.evaluate_agent(grid, agent, iters, sigma=0, agent_start_pos=agent_start_pos, reward_fn=custom_reward_function, random_seed=random_seed)
 
 
 if __name__ == '__main__':
