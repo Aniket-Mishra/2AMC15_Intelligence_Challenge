@@ -7,6 +7,13 @@ def run_value_iteration(env: Environment, gamma: float, theta: float):
     # Initially set V to 0 for all states
     V = {s: 0.0 for s in env.get_state_space()}
 
+    deltas: list[float] = []
+    iteration = 0
+    values = []
+    mean_values = []
+
+    start_state = env.reset()
+
     while True:
         # Store delta to exit the loop when the change in value is lower than theta
         delta = 0
@@ -18,13 +25,26 @@ def run_value_iteration(env: Environment, gamma: float, theta: float):
             # Bellman optimality
             V[s] = max_q
         # Track the maximum change in delta
+        deltas.append(delta)
+        iteration += 1
+        values.append(V[start_state])
+        mean_values.append(sum(V.values()) / len(V))
+
         if delta < theta:
             break
 
     # Extract greedy policy
     policy = extract_greedy_policy(V, env, gamma)
 
-    return V, policy
+    # package metrics
+    metrics = {
+        "iterations": iteration,
+        "deltas": deltas,
+        "values": values,
+        "mean_values": mean_values
+    }
+
+    return V, policy, metrics
 
 
 def get_action_values(s: tuple[int, int], V: dict, env: Environment, gamma: float):
@@ -57,7 +77,7 @@ class ValueIterationAgent(BaseAgent):
         Runs value iteration on the current environment setup to produce an optimal policy
         """
         super().__init__()
-        self.V, self.policy = run_value_iteration(env, gamma, theta)
+        self.V, self.policy, self.metrics = run_value_iteration(env, gamma, theta)
 
     def take_action(self, observation):
         """

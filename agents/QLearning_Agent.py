@@ -46,10 +46,6 @@ class QLearningAgent(BaseAgent):
         # Q-learning update
         self.q_table[state][action] = current_q + self.alpha * (reward + self.gamma * max_future_q - current_q)
 
-        # Decay epsilon to minimize exploration and increase exploitation in later stages
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
-
     def eval_mode(self):
         '''Sets the agent to evaluation mode (call after training).
         This sets epsilon to 0, so the agent only takes the best action and doesn't explore.'''

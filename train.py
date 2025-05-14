@@ -1,6 +1,7 @@
+import ast
 import importlib
-import json
 import inspect
+import os, json, datetime
 from inspect import Parameter
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
@@ -28,7 +29,7 @@ def parse_args() -> Namespace:
     return p.parse_args()
 
 
-def load_agent(agent_name: str, env: Environment) -> Tuple[BaseAgent, str]:
+def load_agent(agent_name: str, env: Environment) -> Tuple[BaseAgent, str, str]:
     with open("agent_config.json", "r") as f:
         config = json.load(f)
     if agent_name not in config:
@@ -45,7 +46,7 @@ def load_agent(agent_name: str, env: Environment) -> Tuple[BaseAgent, str]:
     else:
         agent = AgentClass(**init_args)
 
-    return agent, agent_info["train_mode"]
+    return agent, agent_info["train_mode"], agent_info["init_args"]
 
 
 def update_agent(agent: BaseAgent, args: Namespace,
@@ -77,38 +78,52 @@ def main(args: Namespace) -> None:
             reward_fn=custom_reward_function, target_fps=args.fps, random_seed=args.random_seed
         )
         env.reset()
-        agent, mode = load_agent(args.agent, env)
+        agent, mode, init_args = load_agent(args.agent, env)
 
         if mode == "q_learning":
             #Max difference for convergence check
-            delta = 1e-6
-            for _ in trange(args.episodes, desc=f"Training {args.agent}"):
+            metrics = {"iterations": 0, "deltas": [], "rewards": []}
+            delta = 1e-7
+            
+            for ep in trange(args.episodes, desc=f"Training {args.agent}"):
                 # Save a copy of the current Q-table for convergence check
                 prev_q_table = {
                     s: np.copy(q_values) for s, q_values in agent.q_table.items()
                 }
                 state = env.reset()
+                ep_reward = 0.0
                 for _ in range(args.iter):
                     action = agent.take_action(state)
                     next_state, reward, terminated, info = env.step(action)
-
+                    ep_reward += reward
                     if terminated:
                         break
                     agent.update(state, next_state, reward, info["actual_action"])
                     state = next_state
+                
+                # end of episode: decay once (after warm-up)
+                if ep >= args.episodes/10:
+                    agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
                 # # Convergence check
                 common_states = set(agent.q_table.keys()) & set(prev_q_table.keys())
                 if not common_states:
-                    max_diff = 10
+                    max_diff = 1
                 else:
                     max_diff = max(
                         np.max(np.abs(agent.q_table[s] - prev_q_table[s]))
                         for s in common_states
                     )
-
+                metrics["deltas"].append(max_diff)
+                metrics["rewards"].append(ep_reward)
                 # Stopping criterion
                 if max_diff < delta:
+                    metrics["iterations"] = ep
                     break
+
+            if metrics["iterations"] == 0:
+                metrics["iterations"] = args.episodes
+
+            agent.metrics = metrics
     
             # Set epsilon to 0 so the agent always uses the best action
             agent.eval_mode()
@@ -132,6 +147,8 @@ def main(args: Namespace) -> None:
             final_epsilon = 0.5
             decay_rate = 0.995
 
+            metrics = {"iterations": 0, "deltas": [], "rewards": []}
+
             for episode in trange(args.episodes, desc=f"Training {args.agent}"):
                 # Decay epsilon
                 agent.epsilon = max(final_epsilon, initial_epsilon * (decay_rate ** episode))
@@ -141,9 +158,11 @@ def main(args: Namespace) -> None:
 
                 state = env.reset()
                 done = False
+                ep_reward = 0.0
                 while not done:
                     action = agent.take_action(state)
                     next_state, reward, done, info = env.step(action)
+                    ep_reward += reward
                     agent.update(state, action, reward, next_state, done)
                     state = next_state
 
@@ -156,13 +175,39 @@ def main(args: Namespace) -> None:
                         np.max(np.abs(agent.q_table[s] - prev_q[s]))
                         for s in common_states
                     )
+
+                metrics["deltas"].append(max_diff)
+                metrics["rewards"].append(ep_reward)
+
                 if max_diff < delta:
+                    metrics["iterations"] = episode
                     break
 
+            if metrics["iterations"] == 0:
+                metrics["iterations"] = args.episodes
+
+            agent.metrics = metrics
             agent.epsilon = 0.0  # Switch to greedy
 
         else:
             raise ValueError(f"Unknown training mode '{mode}' for agent '{args.agent}'")
+
+        if hasattr(agent, "metrics"):
+            its = agent.metrics.get("iterations", None)
+            print(f"[Metrics] {args.agent} converged in {its} iterations")
+            metrics_dir = "metrics"
+            os.makedirs(metrics_dir, exist_ok=True)
+            grid_name = Path(grid).stem  # Extract just the filename without extension
+            param_str = "_".join(f"{k}-{v}" for k, v in init_args.items())
+            fname = f"{args.agent}_grid-{grid_name}_{param_str}.json"
+
+            path = os.path.join(metrics_dir, fname)
+        try:
+            with open(path, "w") as mf:
+                json.dump(agent.metrics, mf, indent=2)
+                print(f"[Metrics] Saved convergence data to {path}")
+        except Exception as e:
+            print(f"[Metrics] ERROR saving metrics: {e}")
 
         Environment.evaluate_agent(
             grid, agent, args.iter, args.sigma, agent_start_pos=start_pos,
