@@ -148,6 +148,8 @@ def main(args: Namespace) -> None:
             final_epsilon = 0.5
             decay_rate = 0.995
 
+            metrics = {"iterations": 0, "deltas": [], "rewards": []}
+
             for episode in trange(args.episodes, desc=f"Training {args.agent}"):
                 # Decay epsilon
                 agent.epsilon = max(final_epsilon, initial_epsilon * (decay_rate ** episode))
@@ -157,9 +159,11 @@ def main(args: Namespace) -> None:
 
                 state = env.reset()
                 done = False
+                ep_reward = 0.0
                 while not done:
                     action = agent.take_action(state)
                     next_state, reward, done, info = env.step(action)
+                    ep_reward += reward
                     agent.update(state, action, reward, next_state, done)
                     state = next_state
 
@@ -172,9 +176,18 @@ def main(args: Namespace) -> None:
                         np.max(np.abs(agent.q_table[s] - prev_q[s]))
                         for s in common_states
                     )
+
+                metrics["deltas"].append(max_diff)
+                metrics["rewards"].append(ep_reward)
+
                 if max_diff < delta:
+                    metrics["iterations"] = episode
                     break
 
+            if metrics["iterations"] == 0:
+                metrics["iterations"] = args.episodes
+
+            agent.metrics = metrics
             agent.epsilon = 0.0  # Switch to greedy
 
         else:
