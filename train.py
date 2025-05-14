@@ -150,8 +150,10 @@ def main(args: Namespace) -> None:
             print(f"[Metrics] {args.agent} converged in {its} iterations")
             metrics_dir = "metrics"
             os.makedirs(metrics_dir, exist_ok=True)
+            grid_name = Path(grid).stem  # Extract just the filename without extension
             param_str = "_".join(f"{k}-{v}" for k, v in init_args.items())
-            fname = f"{args.agent}_{param_str}.json"
+            fname = f"{args.agent}_grid-{grid_name}_{param_str}.json"
+
             path = os.path.join(metrics_dir, fname)
         try:
             with open(path, "w") as mf:
