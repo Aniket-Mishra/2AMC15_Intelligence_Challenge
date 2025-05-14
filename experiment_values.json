@@ -1,0 +1,64 @@
+{
+  "defaults": {
+    "QLearningAgent": {
+      "gamma": 0.9,
+      "alpha": 0.2,
+      "epsilon": 0.2,
+      "epsilon_decay": 0.9,
+      "episodes": 2000,
+      "iter": 2000
+    },
+    "ValueIterationAgent": {
+      "gamma": 0.9,
+      "theta": 1e-06,
+      "iter": 2000
+    },
+    "RandomAgent": {
+      "iter": 2000
+    }
+  },
+  "grids": [
+    "A1_grid", "Maze", "test_grid", "large_grid"
+  ],
+  "experiments": {
+    "QLearningAgent": {
+      "gamma": [
+        0.6,
+        0.95
+      ],
+      "alpha": [
+        0.3,
+        0.5
+      ],
+      "epsilon": [
+        0.5
+      ],
+      "epsilon_decay": [
+        0.8
+      ],
+      "episodes": [
+        5000
+      ],
+      "iter": [
+        5000
+      ]
+    },
+    "ValueIterationAgent": {
+      "gamma": [
+        0.6,
+        0.95
+      ],
+      "theta": [
+        1e-05
+      ],
+      "iter": [
+        5000
+      ]
+    },
+    "RandomAgent": {
+      "iter": [
+        5000
+      ]
+    }
+  }
+}
