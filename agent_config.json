@@ -10,7 +10,7 @@
               "epsilon_min": 0.01,
               "num_actions": [0, 1, 2, 3]
           },
-          "train_mode": "episodic"
+          "train_mode": "q_learning"
         },
     "RandomAgent":{
        "module":"agents.random_agent",
@@ -77,7 +77,7 @@
         "theta": 1e-6,
         "gamma": 0.99
        },
-       "train_mode":"iterative"
+       "train_mode":"value_iteration"
     }
     
  }

@@ -79,7 +79,7 @@ def main(args: Namespace) -> None:
         env.reset()
         agent, mode = load_agent(args.agent, env)
 
-        if mode == "episodic":
+        if mode == "q_learning":
             #Max difference for convergence check
             delta = 1e-6
             for _ in trange(args.episodes, desc=f"Training {args.agent}"):
@@ -114,7 +114,7 @@ def main(args: Namespace) -> None:
             agent.eval_mode()
 
 
-        elif mode == "iterative":
+        elif mode == "value_iteration":
             state = env.reset()
             for _ in trange(args.iter, desc=f"Training {args.agent}"):
                 action = agent.take_action(state)
