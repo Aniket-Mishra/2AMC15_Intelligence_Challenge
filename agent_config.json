@@ -3,8 +3,10 @@
           "module": "agents.QLearning_Agent",
             "class": "QLearningAgent",
             "init_args": {
-              "alpha": 0.1,
               "gamma": 0.9,
+              "alpha": 0.2,
+              "alpha_decay": 0.99,
+              "alpha_min": 0.01,
               "epsilon": 0.5,
               "epsilon_decay": 0.9,
               "epsilon_min": 0.01,
@@ -48,8 +50,13 @@
        "module":"agents.1_monte_carlo_agent_on_policy",
        "class":"MonteCarloAgent",
        "init_args":{
-         "epsilon": 0.1,
-         "gamma": 0.99,
+         "gamma": 0.9,
+         "alpha": 0.1,
+         "alpha_decay": 0.99,
+         "alpha_min": 1e-8,
+         "epsilon": 0.5,
+         "epsilon_decay": 0.99,
+         "epsilon_min": 0.01,
          "action_space": [0, 1, 2, 3] 
        },
        "train_mode":"monte_carlo"

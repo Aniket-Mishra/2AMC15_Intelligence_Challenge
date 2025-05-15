@@ -83,7 +83,7 @@ def main(args: Namespace) -> None:
         if mode == "q_learning":
             #Max difference for convergence check
             metrics = {"iterations": 0, "deltas": [], "rewards": []}
-            delta = 1e-7
+            delta = 1e-6
             
             for ep in trange(args.episodes, desc=f"Training {args.agent}"):
                 # Save a copy of the current Q-table for convergence check
@@ -102,8 +102,10 @@ def main(args: Namespace) -> None:
                     state = next_state
                 
                 # end of episode: decay once (after warm-up)
-                if ep >= args.episodes/10:
+                if ep >= args.episodes/4:
                     agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
+                    agent.alpha = max(agent.alpha_min, agent.alpha * agent.alpha_decay)
+
                 # # Convergence check
                 common_states = set(agent.q_table.keys()) & set(prev_q_table.keys())
                 if not common_states:
@@ -143,33 +145,36 @@ def main(args: Namespace) -> None:
 
         elif mode == "monte_carlo":
             delta = 1e-6
-            initial_epsilon = 1.0
-            final_epsilon = 0.5
-            decay_rate = 0.995
 
             metrics = {"iterations": 0, "deltas": [], "rewards": []}
 
             for episode in trange(args.episodes, desc=f"Training {args.agent}"):
-                # Decay epsilon
-                agent.epsilon = max(final_epsilon, initial_epsilon * (decay_rate ** episode))
-
                 # Store Q-table copy for convergence check
                 prev_q = {s: np.copy(agent.q_table[s]) for s in agent.q_table}
 
                 state = env.reset()
-                done = False
+                terminated = False
                 ep_reward = 0.0
-                while not done:
+                for _ in range(args.iter):
                     action = agent.take_action(state)
-                    next_state, reward, done, info = env.step(action)
+                    next_state, reward, terminated, info = env.step(action)
                     ep_reward += reward
-                    agent.update(state, action, reward, next_state, done)
+                    if terminated:
+                        break
+                    agent.update(state, action, reward, next_state, False)
                     state = next_state
+
+                agent.update(state, action, reward, next_state, True)
+
+                # Decay alpha and epsilon at end of episode
+                if episode >= args.episodes/4:
+                    agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
+                    agent.alpha = max(agent.alpha_min, agent.alpha * agent.alpha_decay)
 
                 # Convergence check
                 common_states = set(agent.q_table.keys()) & set(prev_q.keys())
                 if not common_states:
-                    max_diff = float('inf')
+                    max_diff = 1
                 else:
                     max_diff = max(
                         np.max(np.abs(agent.q_table[s] - prev_q[s]))
@@ -210,7 +215,7 @@ def main(args: Namespace) -> None:
             print(f"[Metrics] ERROR saving metrics: {e}")
 
         Environment.evaluate_agent(
-            grid, agent, args.iter, args.sigma, agent_start_pos=start_pos,
+            grid, agent, args.iter, sigma=0.0, agent_start_pos=start_pos, # We don't want noise during evaluation
             reward_fn=custom_reward_function, random_seed=args.random_seed
         )
 

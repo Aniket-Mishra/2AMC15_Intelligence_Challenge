@@ -3,15 +3,19 @@ from agents import BaseAgent
 
 class QLearningAgent(BaseAgent):
     def __init__(self,
+                gamma: float = 0.9,
                  alpha: float = 0.1,
-                 gamma: float = 0.9,
+                 alpha_decay: float = 0.9,
+                 alpha_min: float = 0.01,
                  epsilon: float = 0.5,
                  epsilon_decay: float = 0.9,
                  epsilon_min: float = 0.01,
                  num_actions = [0, 1, 2, 3]):
         super().__init__()
-        self.alpha = alpha
         self.gamma = gamma
+        self.alpha = alpha
+        self.alpha_decay = alpha_decay
+        self.alpha_min = alpha_min
         self.epsilon = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min

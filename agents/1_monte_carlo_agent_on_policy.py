@@ -6,9 +6,23 @@ from collections import defaultdict
 import random
 
 class MonteCarloAgent(BaseAgent):
-    def __init__(self, action_space, epsilon=0.1, gamma=0.99):
+    def __init__(self, 
+                 action_space, 
+                 gamma=0.99,
+                 alpha: float = 0.1,
+                 alpha_decay: float = 0.9,
+                 alpha_min: float = 0.01,
+                 epsilon: float = 0.5,
+                 epsilon_decay: float = 0.9,
+                 epsilon_min: float = 0.01, 
+                ):
         self.action_space = action_space  # typically [0, 1, 2, 3] for up/down/left/right
+        self.alpha = alpha  # NEW: step size as parameter instead of always 1 / visit_count
+        self.alpha_decay = alpha_decay
+        self.alpha_min = alpha_min
         self.epsilon = epsilon
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
         self.gamma = gamma
         self.Q = defaultdict(lambda: np.zeros(len(action_space)))
         self.visit_counts = defaultdict(lambda: np.zeros(len(action_space)))  # <-- new
@@ -41,12 +55,13 @@ class MonteCarloAgent(BaseAgent):
                 visited.add((state_key, action))
 
                 # Increment visit count
-                self.visit_counts[state_key][action] += 1
-                n = self.visit_counts[state_key][action]
+                #self.visit_counts[state_key][action] += 1
+                #n = self.visit_counts[state_key][action]
 
                 # Incremental average update
                 q_old = self.Q[state_key][action]
-                self.Q[state_key][action] += (G - q_old) / n
+                #self.Q[state_key][action] += (G - q_old) / n
+                self.Q[state_key][action] += self.alpha*(G - q_old) # Now update with custom step size
 
 
     def _state_to_key(self, state):
