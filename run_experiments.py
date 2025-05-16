@@ -295,7 +295,7 @@ def main():
 
         default_sigma = exp_defs["defaults"][agent].get("sigma", 0.0)
         sigma = cli_args.get("sigma", default_sigma)
-        agent_start_pos = [1,13] if grid=="A1_grid" else [1,1]
+        agent_start_pos = [3,11] if grid=="A1_grid" else [1,1]
 
         ns = Namespace(
             GRID=[f"grid_configs/{grid}.npy"],
