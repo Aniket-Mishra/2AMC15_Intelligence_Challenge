@@ -10,6 +10,8 @@ The agent names can be found in `agent_config.json`
 
 In the same config, it is also possible to change different parameters for the agents.
 
+Parameters from the original implementation can still be used, such as --no_gui, etc.
+
 ## Multi-Agent RL Experiment
 
 These steps need to be taken to obtain the experiment results as found in the report.
