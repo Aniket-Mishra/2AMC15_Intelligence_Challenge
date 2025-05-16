@@ -1,4 +1,5 @@
 import json
+import uuid
 from copy import deepcopy
 import pandas as pd
 import json, io, sys, re, importlib, inspect
@@ -200,7 +201,7 @@ def train_and_eval(args: Namespace, config: dict):
             # grid_name = Path(grid).stem  # Extract just the filename without extension
             grid_name = Path(grid_fp).stem
             param_str = "_".join(f"{k}-{v}" for k, v in init_args.items())
-            fname = f"{args.agent}_grid-{grid_name}_sigma-{env.sigma}_iter-{args.iter}_{param_str}.json"
+            fname = f"{args.agent}_grid-{grid_name}_sigma-{env.sigma}_iter-{args.iter}_{param_str}_{uuid.uuid4().hex[:8]}.json"
 
             path = os.path.join(metrics_dir, fname)
         try:

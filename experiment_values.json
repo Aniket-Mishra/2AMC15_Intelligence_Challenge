@@ -27,7 +27,7 @@
       "epsilon_decay": 0.99,
       "epsilon_min": 0.01,
       "sigma": 0.1,
-      "episodes": 5000,
+      "episodes": 3000,
       "iter": 20000
     }
   },
