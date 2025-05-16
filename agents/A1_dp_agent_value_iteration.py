@@ -39,6 +39,7 @@ def run_value_iteration(env: Environment, gamma: float, theta: float):
     # package metrics
     metrics = {
         "iterations": iteration,
+        "steps_taken": 0,
         "deltas": deltas,
         "values": values,
         "mean_values": mean_values
