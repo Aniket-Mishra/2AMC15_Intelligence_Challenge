@@ -2,6 +2,8 @@
 Welcome to Data Intelligence Challenge-2AMC15!
 This is the repository containing the challenge environment code.
 
+# NOTE: There is a new README file called AdditionalREADME, please see this file to find how to run train.py and run_experiments.py
+
 ## Quickstart
 
 1. Create a virtual environment for this course with Python >= 3.10. Using conda, you can do: `conda create -n dic2025 python=3.11`. Use `conda activate dic2025` to activate it `conda deactivate` to deactivate it.
