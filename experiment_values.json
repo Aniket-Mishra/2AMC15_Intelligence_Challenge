@@ -1,37 +1,34 @@
 {
   "defaults": {
     "QLearningAgent": {
-      "gamma": 0.9,
-      "alpha": 0.2,
+      "gamma": 0.99,
+      "alpha": 0.5,
       "alpha_decay": 0.99,
       "alpha_min": 0.01,
-      "epsilon": 0.2,
-      "epsilon_decay": 0.9,
-      "epsilon_min": 0.01,
-      "sigma": 0.1,
-      "episodes": 2000,
-      "iter": 2000
-    },
-    "ValueIterationAgent": {
-      "gamma": 0.9,
-      "theta": 1e-06,
-      "sigma": 0.1,
-      "iter": 2000
-    },
-    "RandomAgent": {
-      "iter": 2000
-    },
-    "MCAgentOn": {
-      "gamma": 0.99,
-      "alpha": 0.1,
-      "alpha_decay": 0.99,
-      "alpha_min": 1e-08,
-      "epsilon": 0.1,
+      "epsilon": 0.5,
       "epsilon_decay": 0.99,
       "epsilon_min": 0.01,
       "sigma": 0.1,
       "episodes": 5000,
-      "iter": 5000
+      "iter": 20000
+    },
+    "ValueIterationAgent": {
+      "gamma": 0.99,
+      "theta": 1e-06,
+      "sigma": 0.1,
+      "iter": 20000
+    },
+    "MCAgentOn": {
+      "gamma": 0.99,
+      "alpha": 0.5,
+      "alpha_decay": 0.99,
+      "alpha_min": 1e-08,
+      "epsilon": 0.5,
+      "epsilon_decay": 0.99,
+      "epsilon_min": 0.01,
+      "sigma": 0.1,
+      "episodes": 5000,
+      "iter": 20000
     }
   },
   "grids": [
@@ -42,81 +39,74 @@
     "QLearningAgent": {
       "gamma": [
         0.6,
-        0.99
+        0.9
       ],
       "alpha": [
-        0.3,
+        0.2,
         0.5
       ],
       "alpha_decay": [
-        0.9,
-        0.99
+        0.99,
+        1.0
       ],
       "epsilon": [
         0.2,
         0.5
       ],
       "epsilon_decay": [
-        0.2,
-        0.5,
-        0.9
+        0.99,
+        1.0
       ],
       "sigma": [
         0.0,
         0.5
       ],
-      "episodes": [
-        5000
-      ],
       "iter": [
+        100,
         5000
       ]
     },
     "ValueIterationAgent": {
       "gamma": [
         0.6,
-        0.95
-      ],
-      "theta": [
-        1e-05
+        0.9
       ],
       "sigma": [
         0.0,
         0.5
       ],
       "iter": [
+        100,
         5000
       ]
     },
     "MCAgentOn": {
       "gamma": [
         0.6,
-        0.95
+        0.9
       ],
       "alpha": [
-        0.05,
-        0.2
+        0.2,
+        0.5
       ],
       "alpha_decay": [
-        0.9,
-        0.99
+        0.99,
+        1.0
       ],
       "epsilon": [
         0.2,
         0.5
       ],
       "epsilon_decay": [
-        0.5,
-        0.99
+        0.99,
+        1.0
       ],
       "sigma": [
         0.0,
         0.5
       ],
-      "episodes": [
-        5000
-      ],
       "iter": [
+        100,
         5000
       ]
     }

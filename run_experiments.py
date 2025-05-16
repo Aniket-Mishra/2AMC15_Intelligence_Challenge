@@ -92,7 +92,7 @@ def train_and_eval(args: Namespace, config: dict):
                     )
                 metrics["deltas"].append(max_diff)
                 metrics["rewards"].append(ep_reward)
-                metrics["steps_taken"] = env.world_stats["total_steps"]
+                #metrics["steps_taken"] = env.world_stats["total_steps"]
 
                 if max_diff < delta:
                     metrics["iterations"] = ep
@@ -113,7 +113,7 @@ def train_and_eval(args: Namespace, config: dict):
                 update_agent(agent, args, state, ns, r, info["actual_action"])
                 state = ns
                 if done: break
-            agent.metrics["steps_taken"] = env.world_stats["total_steps"]
+            #agent.metrics["steps_taken"] = env.world_stats["total_steps"]
 
         elif mode == "monte_carlo":
             delta = 1e-6
@@ -153,7 +153,6 @@ def train_and_eval(args: Namespace, config: dict):
 
                 metrics["deltas"].append(max_diff)
                 metrics["rewards"].append(ep_reward)
-                metrics["steps_taken"] = env.world_stats["total_steps"]
 
                 if max_diff < delta:
                     metrics["iterations"] = episode
@@ -174,6 +173,25 @@ def train_and_eval(args: Namespace, config: dict):
                 state = ns
                 if done: break
 
+        # capture evaluation output
+        buf = io.StringIO()
+        old_out, old_err = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = buf, buf
+        try:
+            no_steps = Environment.evaluate_agent(
+                Path(args.GRID[0]),
+                agent,
+                args.iter,
+                sigma=0.0, # No noise during evaluation
+                agent_start_pos=start,
+                reward_fn=custom_reward_function,
+                random_seed=args.random_seed,
+                show_images=False
+            )
+            agent.metrics["steps_taken"] = no_steps
+        finally:
+            sys.stdout, sys.stderr = old_out, old_err
+
         if hasattr(agent, "metrics"):
             its = agent.metrics.get("iterations", None)
             print(f"[Metrics] {args.agent} converged in {its} iterations")
@@ -192,33 +210,14 @@ def train_and_eval(args: Namespace, config: dict):
         except Exception as e:
             print(f"[Metrics] ERROR saving metrics: {e}")
 
-
-    # capture evaluation output
-    buf = io.StringIO()
-    old_out, old_err = sys.stdout, sys.stderr
-    sys.stdout, sys.stderr = buf, buf
-    try:
-        Environment.evaluate_agent(
-            Path(args.GRID[0]),
-            agent,
-            args.iter,
-            args.sigma,
-            agent_start_pos=start,
-            reward_fn=custom_reward_function,
-            random_seed=args.random_seed,
-            show_images=False
-        )
-    finally:
-        sys.stdout, sys.stderr = old_out, old_err
-
-    text = buf.getvalue()
-    metrics = {}
-    for line in text.splitlines():
-        m = re.match(r"\s*([a-z_]+)\s*:\s*([-+]?[0-9]*\.?[0-9]+)", line)
-        if m:
-            k, v = m.group(1), m.group(2)
-            metrics[k] = int(v) if v.isdigit() else float(v)
-    return metrics
+        text = buf.getvalue()
+        metrics = {}
+        for line in text.splitlines():
+            m = re.match(r"\s*([a-z_]+)\s*:\s*([-+]?[0-9]*\.?[0-9]+)", line)
+            if m:
+                k, v = m.group(1), m.group(2)
+                metrics[k] = int(v) if v.isdigit() else float(v)
+        return metrics
 
 
 ## Loop to run experiments
@@ -295,6 +294,7 @@ def main():
 
         default_sigma = exp_defs["defaults"][agent].get("sigma", 0.0)
         sigma = cli_args.get("sigma", default_sigma)
+        agent_start_pos = [1,13] if grid=="A1_grid" else [1,1]
 
         ns = Namespace(
             GRID=[f"grid_configs/{grid}.npy"],
@@ -307,7 +307,7 @@ def main():
             iter=cli_args.get("iter",
                             exp_defs["defaults"][agent].get("iter",2000)),
             random_seed=42,
-            agent_start_pos=[1,1]
+            agent_start_pos=agent_start_pos
         )
 
         metrics = train_and_eval(ns, cfg)
