@@ -1,90 +1,58 @@
 {
-        "QLearningAgent": {
-          "module": "agents.QLearning_Agent",
-            "class": "QLearningAgent",
-            "init_args": {
-              "gamma": 0.9,
-              "alpha": 0.2,
-              "alpha_decay": 0.99,
-              "alpha_min": 0.01,
-              "epsilon": 0.5,
-              "epsilon_decay": 0.9,
-              "epsilon_min": 0.01,
-              "num_actions": [0, 1, 2, 3]
-          },
-          "train_mode": "q_learning"
-        },
-    "RandomAgent":{
-       "module":"agents.random_agent",
-       "class":"RandomAgent",
-       "init_args":{
-          
-       },
-       "train_mode":"iterative"
+  "QLearningAgent": {
+    "module": "agents.QLearning_Agent",
+    "class": "QLearningAgent",
+    "init_args": {
+      "gamma": 0.9,
+      "alpha": 0.2,
+      "alpha_decay": 0.99,
+      "alpha_min": 0.01,
+      "epsilon": 0.5,
+      "epsilon_decay": 0.9,
+      "epsilon_min": 0.01,
+      "num_actions": [
+        0,
+        1,
+        2,
+        3
+      ]
     },
-    "DPAgentOff":{
-       "module":"agents.1_dp_agent_off_policy",
-       "class":"Mordekaiser_The_Revenant",
-       "init_args":{
-          
-       },
-       "train_mode":"iterative"
+    "train_mode": "q_learning"
+  },
+  "RandomAgent": {
+    "module": "agents.random_agent",
+    "class": "RandomAgent",
+    "init_args": {
     },
-    "DPAgentOn":{
-       "module":"agents.1_dp_agent_on_policy",
-       "class":"Sion_the_Undying",
-       "init_args":{
-          
-       },
-       "train_mode":"iterative"
+    "train_mode": "iterative"
+  },
+  "MCAgentOn": {
+    "module": "agents.1_monte_carlo_agent_on_policy",
+    "class": "MonteCarloAgent",
+    "init_args": {
+      "gamma": 0.9,
+      "alpha": 0.1,
+      "alpha_decay": 0.99,
+      "alpha_min": 1e-8,
+      "epsilon": 0.5,
+      "epsilon_decay": 0.99,
+      "epsilon_min": 0.01,
+      "action_space": [
+        0,
+        1,
+        2,
+        3
+      ]
     },
-    "MCAgentOff":{
-       "module":"agents.1_monte_carlo_agent_off_policy",
-       "class":"Pero_the_Cute",
-       "init_args":{
-          
-       },
-       "train_mode":"iterative"
+    "train_mode": "monte_carlo"
+  },
+  "ValueIterationAgent": {
+    "module": "agents.A1_dp_agent_value_iteration",
+    "class": "ValueIterationAgent",
+    "init_args": {
+      "theta": 1e-6,
+      "gamma": 0.99
     },
-    "MCAgentOn":{
-       "module":"agents.1_monte_carlo_agent_on_policy",
-       "class":"MonteCarloAgent",
-       "init_args":{
-         "gamma": 0.9,
-         "alpha": 0.1,
-         "alpha_decay": 0.99,
-         "alpha_min": 1e-8,
-         "epsilon": 0.5,
-         "epsilon_decay": 0.99,
-         "epsilon_min": 0.01,
-         "action_space": [0, 1, 2, 3] 
-       },
-       "train_mode":"monte_carlo"
-    },
-    "TDAgentOff":{
-       "module":"agents.1_td_agent_off_policy",
-       "class":"Artemis_the_Huntress",
-       "init_args":{
-          
-       },
-       "train_mode":"iterative"
-    },
-    "TDAgentOn":{
-       "module":"agents.1_td_agent_on_policy",
-       "class":"Aatrox_the_Darkin_Blade",
-       "init_args":{
-          
-       },
-       "train_mode":"iterative"
-    },
-    "ValueIterationAgent":{
-       "module":"agents.A1_dp_agent_value_iteration",
-       "class":"ValueIterationAgent",
-       "init_args":{
-        "theta": 1e-6,
-        "gamma": 0.99
-       },
-       "train_mode":"value_iteration"
-    }
-    
- }
+    "train_mode": "value_iteration"
+  }
+}
