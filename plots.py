@@ -20,7 +20,11 @@ def plot_lines_from_folder(folder_path, metric_keys, folder_name, subfolder_name
                 if metric in metrics:
                     # Use dashed line for maze
                     linestyle = '--' if 'grid-Maze' in fname else '-'
-                    label = fname.replace(".json", "")
+                    raw_label = fname[:-5]  # strip off ".json"
+                    if len(raw_label) > 30:
+                        label = raw_label[:30] + "…"
+                    else:
+                        label = raw_label
                     plt.plot(metrics[metric], label=label, linestyle=linestyle)
                     found = True
             except Exception as e:
