@@ -3,38 +3,67 @@
     "QLearningAgent": {
       "gamma": 0.9,
       "alpha": 0.2,
+      "alpha_decay": 0.99,
+      "alpha_min": 0.01,
       "epsilon": 0.2,
       "epsilon_decay": 0.9,
+      "epsilon_min": 0.01,
+      "sigma": 0.1,
       "episodes": 2000,
       "iter": 2000
     },
     "ValueIterationAgent": {
       "gamma": 0.9,
       "theta": 1e-06,
+      "sigma": 0.1,
       "iter": 2000
     },
     "RandomAgent": {
       "iter": 2000
+    },
+    "MCAgentOn": {
+      "gamma": 0.99,
+      "alpha": 0.1,
+      "alpha_decay": 0.99,
+      "alpha_min": 1e-08,
+      "epsilon": 0.1,
+      "epsilon_decay": 0.99,
+      "epsilon_min": 0.01,
+      "sigma": 0.1,
+      "episodes": 5000,
+      "iter": 5000
     }
   },
   "grids": [
-    "A1_grid", "Maze", "test_grid", "large_grid"
+    "A1_grid",
+    "Maze"
   ],
   "experiments": {
     "QLearningAgent": {
       "gamma": [
         0.6,
-        0.95
+        0.99
       ],
       "alpha": [
         0.3,
         0.5
       ],
+      "alpha_decay": [
+        0.9,
+        0.99
+      ],
       "epsilon": [
+        0.2,
         0.5
       ],
       "epsilon_decay": [
-        0.8
+        0.2,
+        0.5,
+        0.9
+      ],
+      "sigma": [
+        0.0,
+        0.5
       ],
       "episodes": [
         5000
@@ -51,11 +80,42 @@
       "theta": [
         1e-05
       ],
+      "sigma": [
+        0.0,
+        0.5
+      ],
       "iter": [
         5000
       ]
     },
-    "RandomAgent": {
+    "MCAgentOn": {
+      "gamma": [
+        0.6,
+        0.95
+      ],
+      "alpha": [
+        0.05,
+        0.2
+      ],
+      "alpha_decay": [
+        0.9,
+        0.99
+      ],
+      "epsilon": [
+        0.2,
+        0.5
+      ],
+      "epsilon_decay": [
+        0.5,
+        0.99
+      ],
+      "sigma": [
+        0.0,
+        0.5
+      ],
+      "episodes": [
+        5000
+      ],
       "iter": [
         5000
       ]
